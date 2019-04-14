@@ -1,0 +1,19 @@
+language: csharp
+mono:
+  - latest
+
+script:
+  - msbuild /p:Configuration=Release /t:MCGalaxyCLI
+  - zip -r Release.zip bin/Release
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "KesSQHUasleAOqqmxnkgxluxuHf6bG+tdUdlTUrVWuqTUREpj/LIcp2AemcrtzytTVFiHogvxPSRwtKzYAa7yLx0wUugMihoSzGvQP/MQjIpndUbYSjWySiabMbFtDX3k0Ys19sU4b1DKj76Yvc7WWihb0EX7D/68UGl6EUMJbChWH+FCny8d7hmM9HRL55KwbJOrApJaeoptz1oz2snuoXwHwX3RCOox+rw9XAiyyOG1Fvv7+xtTYwi7j26EH6mKmqilu2hIS3uC0ybhBGjlpceC8cASGrGwPrz+86pJh1zG3K8V7sLn+LJKOJCIKlpW7yA4KSoD07347LtHB7wZAj52kx43258IHyg+RR2nx8sTXPWG8xgeIpq+huNekyxjJf0A5OHxrNt7iG5PD1g8ZRNTJksPcKVozGt2n9zIf3fLXy4SZauW1lOryt67xOGozwvOAhrj7icGgzUfZfaHm0iSJSa3KkHertpDa2XnWv82lJ1F65KdGSnKMabUgGNx/W1PT2fYKUbf09Lc/SmYG0YzQBI+36USg2gEvtCjRTxyAO3o81LBBBeG713uz9xiyBRKzhB4MAtM3L+enD1Vt66D3/DI5duQvhqPEcHD6w+gaxQOmripjc3Hr2HaQqonoDB3P7I37+mmBB+CsWxIy2Zi39XPZ49TUuirohO1sI="
+  file: Release.zip
+  skip_cleanup: true
+  on:
+    branch: master
+branches:
+  only:
+    - master
