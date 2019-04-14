@@ -4,7 +4,7 @@ mono:
 
 script:
   - msbuild /p:Configuration=Release /t:MCGalaxyCLI
-  - zip -r Release.zip bin/Release
+  - cd bin/Release/ && zip -r Release.zip *
 
 deploy:
   provider: releases
