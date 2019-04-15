@@ -240,8 +240,15 @@ namespace MCGalaxy.Network {
                     Server.Config.ProfanityFiltering ? ProfanityFilter.Parse(message) : message));
             } else {
                 Logger.Log(LogType.IRCChat, "(IRC) {0}: {1}", user.Nick, message);
-                MessageInGame(user.Nick, string.Format("%I(IRC) {0}: &f{1}", user.Nick,
-                    Server.Config.ProfanityFiltering ? ProfanityFilter.Parse(message) : message));
+
+                if (user.Nick == "meta1" || user.Nick == "meta2") {
+                    // these already say #1 / #2 in the message
+                    MessageInGame(user.Nick, string.Format("&R{1}", user.Nick,
+                        Server.Config.ProfanityFiltering ? ProfanityFilter.Parse(message) : message));
+                } else {
+                    MessageInGame(user.Nick, string.Format("%R{0}: &f{1}", user.Nick,
+                        Server.Config.ProfanityFiltering ? ProfanityFilter.Parse(message) : message));
+                }
             }
         }
 
