@@ -3,7 +3,7 @@ mono:
   - latest
 
 script:
-  - msbuild /p:Configuration=Release /t:MCGalaxyCLI
+  - msbuild /p:Configuration=Release /t:MCGalaxyCLI /p:DefineConstants=TEN_BIT_BLOCKS
   - cd bin/Release/ && zip -r Release.zip *
 
 deploy:
