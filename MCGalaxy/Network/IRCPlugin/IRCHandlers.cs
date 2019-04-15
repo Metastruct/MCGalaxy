@@ -246,7 +246,7 @@ namespace MCGalaxy.Network {
                     MessageInGame(user.Nick, string.Format("&f{0}",
                         Server.Config.ProfanityFiltering ? ProfanityFilter.Parse(message) : message));
                 } else {
-                    MessageInGame(user.Nick, string.Format("%R{0}: &f{1}",
+                    MessageInGame(user.Nick, string.Format("%I(IRC) &R{0}: &f{1}",
                         user.Nick,
                         Server.Config.ProfanityFiltering ? ProfanityFilter.Parse(message) : message));
                 }
