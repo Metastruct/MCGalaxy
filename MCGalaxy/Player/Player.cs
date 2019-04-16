@@ -267,6 +267,7 @@ namespace MCGalaxy {
 
                     string user = name + " (" + ip + ")";
                     Logger.Log(LogType.UserActivity, "{0} disconnected. ({1})", user, discMsg);
+                    ShowDisconnectInChat(chatMsg, isKick);
                     return;
                 }
 
