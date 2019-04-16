@@ -27,11 +27,17 @@ namespace MCGalaxy.Commands.Misc {
                 return;
             }
 
-            if (!p.level.name.CaselessEq(p.PreTeleportMap)) {
-                PlayerActions.ChangeMap(p, p.PreTeleportMap);
+            var preTeleportMap = p.PreTeleportMap;
+            var preTeleportPos = p.PreTeleportPos;
+            var preTeleportRot = p.PreTeleportRot;
+
+            CmdTp.SavePreTeleportState(p);
+
+            if (!p.level.name.CaselessEq(preTeleportMap)) {
+                PlayerActions.ChangeMap(p, preTeleportMap);
             }
 
-            p.SendPos(Entities.SelfID, p.PreTeleportPos, p.PreTeleportRot);
+            p.SendPos(Entities.SelfID, preTeleportPos, preTeleportRot);
         }
 
         public override void Help(Player p) {
