@@ -205,6 +205,7 @@ namespace MCGalaxy {
         /// <summary> Disconnects the players from the server,
         /// with the given message shown in both chat and in the disconnect packet. </summary>
         public void Leave(string chatMsg, string discMsg, bool sync = false) {
+            if (chatMsg == null) chatMsg = discMsg;
             LeaveServer(chatMsg, discMsg, false, sync);
         }
 
