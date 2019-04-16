@@ -183,7 +183,7 @@ namespace MCGalaxy.Network {
         void DoJoinLeaveMessage(string nick, string verb, string channel) {
             Logger.Log(LogType.IRCCActivity, "{0} {1} channel {2}", nick, verb, channel);
             string which = bot.opchannels.CaselessContains(channel) ? " operator" : "";
-            MessageInGame(nick, string.Format("%I(IRC) &R{0} &c{1} &fthe{2} channel", nick, verb, which));
+            MessageInGame(nick, string.Format("%I(IRC) &R{0} &S{1} the{2} channel", nick, verb, which));
         }
 
         void Listener_OnQuit(UserInfo user, string reason) {
@@ -196,7 +196,7 @@ namespace MCGalaxy.Network {
 
             if (user.Nick == bot.nick) return;
             Logger.Log(LogType.IRCCActivity, user.Nick + " left IRC");
-            MessageInGame(user.Nick, "%I(IRC) &R" + user.Nick + " &fleft");
+            MessageInGame(user.Nick, string.Format("%I(IRC) &R{0} &Squit &f({1})", user.Nick, reason));
         }
 
         void Listener_OnError(ReplyCode code, string message) {
