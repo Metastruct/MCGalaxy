@@ -80,7 +80,7 @@ namespace MCGalaxy {
             string action,
             bool canAffectOwnRank
         ) {
-            if (canAffectOwnRank && rank <= data.Rank) return true;
+            if ((canAffectOwnRank || (data.Rank >= LevelPermission.Admin)) && rank <= data.Rank) return true;
             if (!canAffectOwnRank && rank < data.Rank) return true;
 
             if (canAffectOwnRank)
