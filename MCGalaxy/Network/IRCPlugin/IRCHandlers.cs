@@ -118,7 +118,7 @@ namespace MCGalaxy.Network {
 
 
         string Unescape(Player p, string msg) {
-            string full = Server.Config.IRCShowPlayerTitles ? p.FullName : p.group.Prefix + p.ColoredName;
+            string full = Server.Config.IRCShowPlayerTitles ? p.FullName : ((p.group == null) ? p.ColoredName : p.group.Prefix + p.ColoredName);
             return msg.Replace("λFULL", full).Replace("λNICK", p.ColoredName);
         }
 
