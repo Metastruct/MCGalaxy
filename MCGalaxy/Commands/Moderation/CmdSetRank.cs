@@ -95,10 +95,18 @@ namespace MCGalaxy.Commands.Moderation {
             }
 
             if (!p.IsConsole) {
-                if (!CheckRank(p, data, curRank.Permission, "change the rank of", false)) return false;
-                if (newRank.Permission >= data.Rank) {
-                    p.Message("Cannot rank a player to a rank equal to or higher than yours.");
-                    return false;
+                if (data.Rank < LevelPermission.Admin) {
+                    if (!CheckRank(p, data, curRank.Permission, "change the rank of", false)) return false;
+                    if (newRank.Permission >= data.Rank) {
+                        p.Message("Cannot rank a player to a rank equal to or higher than yours.");
+                        return false;
+                    }
+                } else {
+                    if (!CheckRank(p, data, curRank.Permission, "change the rank of", true)) return false;
+                    if (newRank.Permission > data.Rank) {
+                        p.Message("Cannot rank a player to a rank higher than yours.");
+                        return false;
+                    }
                 }
             }
 
