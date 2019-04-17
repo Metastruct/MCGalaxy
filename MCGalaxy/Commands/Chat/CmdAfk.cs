@@ -38,7 +38,11 @@ namespace MCGalaxy.Commands.Chatting {
                 if (cantSend) {
                     p.Message("You are now marked as being AFK.");
                 } else {
-                    ShowMessage(p, "-λNICK%S- is AFK: " + message);
+                    if (message == null || message.Trim() == "") {
+                        ShowMessage(p, "-λNICK%S- is AFK");
+                    } else {
+                        ShowMessage(p, "-λNICK%S- is AFK: " + message);
+                    }
                     p.CheckForMessageSpam();
                 }
                 p.AFKCooldown = DateTime.UtcNow.AddSeconds(2);
