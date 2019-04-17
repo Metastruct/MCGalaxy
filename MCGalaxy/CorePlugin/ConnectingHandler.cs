@@ -58,20 +58,41 @@ namespace MCGalaxy.Core {
         static bool VerifyName(Player p, string mppass) {
             if (!Server.Config.VerifyNames) return true;
 
+            if (Server.RestoredTokens.ContainsKey(p.truename)) {
+                string token = Server.RestoredTokens[p.truename];
+
+                Server.RestoredTokens.Remove(p.truename);
+
+                if (mppass.CaselessEq(token)) {
+                    Logger.Log(LogType.UserActivity, "Player {0} Restore token success", p.truename);
+
+                    p.verifiedName = true;
+                    return true;
+                } else {
+                    Logger.Log(LogType.UserActivity, "Player {0} Restore token didn't match!", p.truename);
+                }
+            }
+
+
             byte[] hash = null;
-            lock(md5Lock)
-            hash = md5.ComputeHash(enc.GetBytes(Server.salt + p.truename));
+            lock(md5Lock) {
+                hash = md5.ComputeHash(enc.GetBytes(Server.salt + p.truename));
+            }
 
             string hashHex = BitConverter.ToString(hash);
-            if (!mppass.CaselessEq(hashHex.Replace("-", ""))) {
-                if (!HttpUtil.IsPrivateIP(p.ip)) {
-                    p.Leave(null, "Login failed! Close the game and sign in again.", true);
-                    return false;
-                }
-            } else {
+            if (mppass.CaselessEq(hashHex.Replace("-", ""))) {
                 p.verifiedName = true;
+                return true;
             }
-            return true;
+
+
+            if (HttpUtil.IsPrivateIP(p.ip)) {
+                return true;
+            }
+
+            p.Leave(null, "Login failed! Close the game and sign in again.", true);
+            return false;
+
         }
 
         static bool CheckTempban(Player p) {

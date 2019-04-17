@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Security.Cryptography;
 using System.Threading;
 using MCGalaxy.Commands;
 using MCGalaxy.Commands.World;
@@ -34,6 +35,9 @@ using MCGalaxy.Util;
 
 namespace MCGalaxy {
     public sealed partial class Server {
+
+        private const string ShutdownTokensFile = "_restore_tokens.txt";
+        public static Dictionary<string, string> RestoredTokens = new Dictionary<string, string>();
 
         public Server() { Server.s = this; }
 
@@ -210,6 +214,8 @@ namespace MCGalaxy {
                 if (Plugin.core.Contains(p)) continue;
                 Plugin.Load(p, false);
             }
+
+            LoadRestoreTokens();
         }
 
         static readonly object stopLock = new object();
@@ -224,6 +230,33 @@ namespace MCGalaxy {
             }
         }
 
+        private static void LoadRestoreTokens() {
+            if (!File.Exists(ShutdownTokensFile)) return;
+
+            string[] lines = File.ReadAllLines(ShutdownTokensFile);
+            for (int i = 0; i < lines.Length; i++) {
+                string[] args = lines[i].SplitSpaces();
+                if (args.Length != 2) continue;
+                RestoredTokens.Add(args[0], args[1]);
+            }
+            File.Delete(ShutdownTokensFile);
+        }
+
+        private static void SaveRestoreTokens(Player[] players) {
+            System.Text.ASCIIEncoding enc = new System.Text.ASCIIEncoding();
+            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
+
+            List<string> lines = new List<string>();
+            foreach (Player p in players) {
+                byte[] hash = md5.ComputeHash(enc.GetBytes(Server.salt + p.truename));
+                string hashHex = BitConverter.ToString(hash);
+
+                lines.Add(string.Format("{0} {1}", p.truename, hashHex.Replace("-", "")));
+            }
+
+            File.WriteAllLines(ShutdownTokensFile, lines);
+        }
+
         static void ShutdownThread(bool restarting, string msg) {
             try {
                 Logger.Log(LogType.SystemActivity, "Server shutting down ({0})", msg);
@@ -236,7 +269,12 @@ namespace MCGalaxy {
 
             try {
                 Player[] players = PlayerInfo.Online.Items;
-                foreach (Player p in players) { p.Leave(msg); }
+
+                SaveRestoreTokens(players);
+
+                foreach (Player p in players) {
+                    p.Leave(msg);
+                }
             } catch (Exception ex) { Logger.LogError(ex); }
 
             byte[] kick = Packet.Kick(msg, false);
