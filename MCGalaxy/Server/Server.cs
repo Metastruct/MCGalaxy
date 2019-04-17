@@ -1,14 +1,14 @@
 /*
     Copyright 2010 MCSharp team (Modified for use with MCZall/MCLawl/MCGalaxy)
-    
+
     Dual-licensed under the    Educational Community License, Version 2.0 and
     the GNU General Public License, Version 3 (the "Licenses"); you may
     not use this file except in compliance with the Licenses. You may
     obtain a copy of the Licenses at
-    
+
     http://www.opensource.org/licenses/ecl2.php
     http://www.gnu.org/licenses/gpl-3.0.html
-    
+
     Unless required by applicable law or agreed to in writing,
     software distributed under the Licenses are distributed on an "AS IS"
     BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -34,34 +34,34 @@ using MCGalaxy.Util;
 
 namespace MCGalaxy {
     public sealed partial class Server {
-        
+
         public Server() { Server.s = this; }
-        
+
         //True = cancel event
         //Fale = dont cacnel event
         public static bool Check(string cmd, string message) {
             if (ConsoleCommand != null) ConsoleCommand(cmd, message);
             return cancelcommand;
         }
-        
+
         [Obsolete("Use Logger.LogError(Exception)")]
         public static void ErrorLog(Exception ex) { Logger.LogError(ex); }
-        
+
         [Obsolete("Use Logger.Log(LogType, String)")]
         public void Log(string message) { Logger.Log(LogType.SystemActivity, message); }
-        
+
         [Obsolete("Use Logger.Log(LogType, String)")]
         public void Log(string message, bool systemMsg = false) {
             LogType type = systemMsg ? LogType.BackgroundActivity : LogType.SystemActivity;
             Logger.Log(type, message);
         }
-        
+
         static void CheckFile(string file) {
             if (File.Exists(file)) return;
-            
+
             Logger.Log(LogType.SystemActivity, file + " doesn't exist, Downloading..");
             try {
-                using (WebClient client = HttpUtil.CreateWebClient()) {
+                using(WebClient client = HttpUtil.CreateWebClient()) {
                     client.DownloadFile(Updater.BaseURL + file + "?raw=true", file);
                 }
                 if (File.Exists(file)) {
@@ -71,23 +71,23 @@ namespace MCGalaxy {
                 Logger.Log(LogType.Warning, "Downloading {0} failed, please try again later", file);
             }
         }
-        
+
         internal static ConfigElement[] serverConfig, levelConfig, zoneConfig;
         public static void Start() {
             serverConfig = ConfigElement.GetAll(typeof(ServerConfig));
             levelConfig = ConfigElement.GetAll(typeof(LevelConfig));
             zoneConfig = ConfigElement.GetAll(typeof(ZoneConfig));
-            
-            #pragma warning disable 0618
+
+#pragma warning disable 0618
             Player.players = PlayerInfo.Online.list;
             Server.levels = LevelInfo.Loaded.list;
-            #pragma warning restore 0618
-            
+#pragma warning restore 0618
+
             StartTime = DateTime.UtcNow;
             shuttingDown = false;
             Logger.Log(LogType.SystemActivity, "Starting Server");
             ServicePointManager.Expect100Continue = false;
-            
+
             CheckFile("MySql.Data.dll");
             CheckFile("sqlite3_x32.dll");
             CheckFile("sqlite3_x64.dll");
@@ -112,21 +112,21 @@ namespace MCGalaxy {
             Background.QueueOnce(UpgradeTasks.UpgradeDBTimeSpent);
             Background.QueueOnce(InitPlayerLists);
             Background.QueueOnce(UpgradeTasks.UpgradeBots);
-            
+
             Background.QueueOnce(SetupSocket);
             Background.QueueOnce(InitTimers);
             Background.QueueOnce(InitRest);
             Background.QueueOnce(InitHeartbeat);
-            
+
             Devs.Clear();
             Mods.Clear();
             Background.QueueOnce(InitTasks.UpdateStaffList);
 
             ServerTasks.QueueTasks();
             Background.QueueRepeat(ThreadSafeCache.DBCache.CleanupTask,
-                                   null, TimeSpan.FromMinutes(5));
+                null, TimeSpan.FromMinutes(5));
         }
-        
+
         static void MoveSqliteDll() {
             try {
                 string dll = IntPtr.Size == 8 ? "sqlite3_x64.dll" : "sqlite3_x32.dll";
@@ -135,7 +135,7 @@ namespace MCGalaxy {
                 Logger.LogError("Error moving SQLite dll", ex);
             }
         }
-        
+
         static void EnsureFilesExist() {
             EnsureDirectoryExists("properties");
             EnsureDirectoryExists("levels");
@@ -153,11 +153,11 @@ namespace MCGalaxy {
             EnsureDirectoryExists(IScripting.DllDir);
             EnsureDirectoryExists(IScripting.SourceDir);
         }
-        
+
         static void EnsureDirectoryExists(string dir) {
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
         }
-        
+
         static void MoveOutdatedFiles() {
             try {
                 if (File.Exists("blocks.json")) File.Move("blocks.json", "blockdefs/global.json");
@@ -169,10 +169,9 @@ namespace MCGalaxy {
                 if (File.Exists("autoload.txt")) File.Move("autoload.txt", "text/autoload.txt");
                 if (File.Exists("IRC_Controllers.txt")) File.Move("IRC_Controllers.txt", "ranks/IRC_Controllers.txt");
                 if (Server.Config.WhitelistedOnly && File.Exists("whitelist.txt")) File.Move("whitelist.txt", "ranks/whitelist.txt");
-            }
-            catch { }
-        }        
-        
+            } catch { }
+        }
+
         public static void LoadAllSettings() {
             // Unload custom plugins
             List<Plugin> plugins = new List<Plugin>(Plugin.all);
@@ -180,13 +179,13 @@ namespace MCGalaxy {
                 if (Plugin.core.Contains(p)) continue;
                 Plugin.Unload(p, false);
             }
-            
+
             ZSGame.Instance.infectMessages = ZSConfig.LoadInfectMessages();
             Colors.LoadList();
             Alias.Load();
             BlockDefinition.LoadGlobal();
             ImagePalette.Load();
-            
+
             SrvProperties.Load();
             Group.LoadAll();
             CommandPerms.Load();
@@ -201,45 +200,45 @@ namespace MCGalaxy {
             Team.LoadList();
             ChatTokens.LoadCustom();
             SrvProperties.FixupOldPerms();
-            
+
             TextFile announcementsFile = TextFile.Files["Announcements"];
             announcementsFile.EnsureExists();
             announcements = announcementsFile.GetText();
-            
+
             // Reload custom plugins
             foreach (Plugin p in plugins) {
                 if (Plugin.core.Contains(p)) continue;
                 Plugin.Load(p, false);
             }
         }
-        
+
         static readonly object stopLock = new object();
         static volatile Thread stopThread;
         public static Thread Stop(bool restart, string msg) {
             Server.shuttingDown = true;
-            lock (stopLock) {
+            lock(stopLock) {
                 if (stopThread != null) return stopThread;
                 stopThread = new Thread(() => ShutdownThread(restart, msg));
                 stopThread.Start();
                 return stopThread;
             }
         }
-        
+
         static void ShutdownThread(bool restarting, string msg) {
             try {
                 Logger.Log(LogType.SystemActivity, "Server shutting down ({0})", msg);
             } catch { }
-            
+
             // Stop accepting new connections and disconnect existing sessions
             try {
                 if (Listener != null) Listener.Close();
             } catch (Exception ex) { Logger.LogError(ex); }
-            
+
             try {
                 Player[] players = PlayerInfo.Online.Items;
                 foreach (Player p in players) { p.Leave(msg); }
             } catch (Exception ex) { Logger.LogError(ex); }
-            
+
             byte[] kick = Packet.Kick(msg, false);
             try {
                 INetSocket[] pending = INetSocket.pending.Items;
@@ -254,21 +253,21 @@ namespace MCGalaxy {
                 Level[] loaded = LevelInfo.Loaded.Items;
                 foreach (Level lvl in loaded) {
                     if (!lvl.SaveChanges) continue;
-                    
+
                     autoload = autoload + lvl.name + "=" + lvl.physics + Environment.NewLine;
                     lvl.Save(false, true);
                     lvl.SaveBlockDBChanges();
                 }
-                
+
                 if (Server.SetupFinished && !Server.Config.AutoLoadMaps) {
                     File.WriteAllText("text/autoload.txt", autoload);
                 }
             } catch (Exception ex) { Logger.LogError(ex); }
-            
+
             try {
                 Logger.Log(LogType.SystemActivity, "Server shutdown completed");
             } catch { }
-            
+
             try { FileLogger.Flush(null); } catch { }
             if (restarting) Process.Start(RestartPath);
             Environment.Exit(0);
@@ -287,35 +286,36 @@ namespace MCGalaxy {
         internal static void SettingsUpdate() {
             if (OnSettingsUpdate != null) OnSettingsUpdate();
         }
-        
+
         public static bool SetMainLevel(string map) {
             string main = mainLevel != null ? mainLevel.name : Server.Config.MainLevel;
             if (map.CaselessEq(main)) return false;
-            
+
             Level lvl = LevelInfo.FindExact(map);
             if (lvl == null)
                 lvl = LevelActions.Load(Player.Console, map, false);
             if (lvl == null) return false;
-            
-            SetMainLevel(lvl); return true;
+
+            SetMainLevel(lvl);
+            return true;
         }
-        
+
         public static void SetMainLevel(Level lvl) {
             Level oldMain = mainLevel;
             mainLevel = lvl;
-            
+
             mainLevel.Config.AutoUnload = false;
             Server.Config.MainLevel = lvl.name;
-            
+
             oldMain.Config.AutoUnload = true;
             oldMain.AutoUnload();
         }
-        
+
         public static void DoGC() {
             long start = GC.GetTotalMemory(false);
             GC.Collect();
             GC.WaitForPendingFinalizers();
-            
+
             long end = GC.GetTotalMemory(false);
             double deltaKB = (start - end) / 1024.0;
             if (deltaKB >= 100.0) {
