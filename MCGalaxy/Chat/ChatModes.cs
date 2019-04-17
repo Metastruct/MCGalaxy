@@ -41,7 +41,6 @@ namespace MCGalaxy {
 
                 Player who = PlayerInfo.FindMatches(p, target);
                 if (who == null) return true;
-                if (who == p) { p.Message("Trying to talk to yourself, huh?"); return true; }
 
                 DoPM(p, who, text);
                 return true;
