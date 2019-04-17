@@ -57,11 +57,6 @@ namespace MCGalaxy.Commands.Moderation {
                 return;
             }
 
-            if (p.name.CaselessEq(target)) {
-                p.Message("%WYou cannot assign yourself a temporary rank.");
-                return;
-            }
-
             Group curRank = PlayerInfo.GetGroup(target);
             string reason = args.Length > 3 ? args[3] : "assigning temp rank";
             if (!CmdSetRank.CanChangeRank(target, curRank, newRank, p, data, ref reason)) return;

@@ -59,7 +59,6 @@ namespace MCGalaxy.Commands.Moderation {
             string reason = args.Length > 1 ? args[1] : "";
             reason = ModActionCmd.ExpandReason(p, reason);
             if (reason == null) return;
-            if (p.name == name) { p.Message("You cannot unmute yourself."); return; }
 
             ModAction action = new ModAction(name, p, ModActionType.Unmuted, reason);
             OnModActionEvent.Call(action);
