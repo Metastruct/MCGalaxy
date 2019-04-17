@@ -53,10 +53,6 @@ namespace MCGalaxy.Commands.Moderation {
             }
 
             if (target == null) return;
-            if (p.name.CaselessEq(target)) {
-                p.Message("Cannot change your own rank.");
-                return;
-            }
 
             Group curRank = PlayerInfo.GetGroup(target);
             Group newRank = TargetRank(p, rankName, curRank);
