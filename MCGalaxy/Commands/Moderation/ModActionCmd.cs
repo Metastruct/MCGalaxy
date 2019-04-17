@@ -132,11 +132,6 @@ namespace MCGalaxy.Commands.Moderation {
         }
 
         internal static Group CheckTarget(Player p, CommandData data, string action, string target) {
-            if (p.name.CaselessEq(target)) {
-                p.Message("You cannot {0} yourself", action);
-                return null;
-            }
-
             Group group = PlayerInfo.GetGroup(target);
             if (p.IsConsole) return group;
             if (!Command.CheckRank(p, data, group.Permission, action, false)) return null;
