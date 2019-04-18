@@ -224,6 +224,8 @@ namespace MCGalaxy {
         }
 
 
+        static Dictionary<string, string> RestoreLastMap = new Dictionary<string, string>();
+
         bool leftServer = false;
         void LeaveServer(string chatMsg, string discMsg, bool isKick, bool sync = false) {
             if (leftServer) return;
@@ -277,6 +279,9 @@ namespace MCGalaxy {
 
                 PlayerInfo.Online.Remove(this);
                 OnPlayerDisconnectEvent.Call(this, discMsg);
+
+                RestoreLastMap[truename] = level.name;
+                Logger.Log(LogType.UserActivity, "{0} Set restore map to {1}", truename, level.name);
 
                 level.AutoUnload();
                 Dispose();

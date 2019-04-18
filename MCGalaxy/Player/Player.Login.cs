@@ -162,6 +162,15 @@ namespace MCGalaxy {
 
             PlayerActions.PostSentMap(this, null, level, false);
             Loading = false;
+
+
+            if (RestoreLastMap.ContainsKey(truename)) {
+                string levelName = RestoreLastMap[truename];
+                if (Formatter.ValidMapName(this, levelName) && (levelName != Server.mainLevel.name)) {
+                    Logger.Log(LogType.UserActivity, "{0} Restoring last map {1}", truename, levelName);
+                    PlayerActions.ChangeMap(this, levelName);
+                }
+            }
         }
 
         void ShowWelcome() {
