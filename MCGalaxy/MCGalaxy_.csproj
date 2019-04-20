@@ -25,6 +25,7 @@
     <RegisterForComInterop>False</RegisterForComInterop>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
     <BaseAddress>4194304</BaseAddress>
+    <DefineConstants>TRACE;TEN_BIT_BLOCKS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="LibNoise">
