@@ -1,10 +1,11 @@
 language: csharp
-mono:
-  - latest
+mono: none
+dotnet: 2.2.106
 
 script:
-  - msbuild /p:Configuration=Release /t:MCGalaxyCLI /p:DefineConstants=TEN_BIT_BLOCKS
-  - cd bin/Release/ && zip -r Release.zip *
+  - dotnet restore
+  - dotnet publish --configuration Release --output publish CLI
+  - cd CLI/publish/ && zip -r Release.zip *
 
 deploy:
   provider: releases
