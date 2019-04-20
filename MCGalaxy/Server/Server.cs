@@ -92,9 +92,6 @@ namespace MCGalaxy {
             Logger.Log(LogType.SystemActivity, "Starting Server");
             ServicePointManager.Expect100Continue = false;
 
-            CheckFile("MySql.Data.dll");
-            CheckFile("sqlite3_x32.dll");
-            CheckFile("sqlite3_x64.dll");
             CheckFile("LibNoise.dll");
 
             EnsureFilesExist();
