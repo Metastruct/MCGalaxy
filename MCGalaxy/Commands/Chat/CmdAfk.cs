@@ -25,7 +25,7 @@ namespace MCGalaxy.Commands.Chatting {
         public override bool SuperUseable { get { return false; } }
 
         public override void Use(Player p, string message, CommandData data) { ToggleAfk(p, message); }
-        internal static void ToggleAfk(Player p, string message) {
+        internal static void ToggleAfk(Player p, string message, bool isAuto = false) {
             if (p.joker) message = "";
             p.AutoAfk = false;
             p.IsAfk = !p.IsAfk;
@@ -43,7 +43,11 @@ namespace MCGalaxy.Commands.Chatting {
                     if (message == null || message.Trim() == "") {
                         ShowMessage(p, "-λNICK%S- is AFK");
                     } else {
-                        ShowMessage(p, "-λNICK%S- is AFK: " + message);
+                        if (isAuto) {
+                            ShowMessage(p, "-λNICK%S- is AFK " + message);
+                        } else {
+                            ShowMessage(p, "-λNICK%S- is AFK: " + message);
+                        }
                     }
                     p.CheckForMessageSpam();
                 }
