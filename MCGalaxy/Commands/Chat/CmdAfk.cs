@@ -31,6 +31,8 @@ namespace MCGalaxy.Commands.Chatting {
             p.IsAfk = !p.IsAfk;
             p.afkMessage = p.IsAfk ? message : null;
             TabList.Update(p, true);
+
+            var oldLastAction = p.LastAction;
             p.LastAction = DateTime.UtcNow;
 
             bool cantSend = p.muted || (Server.chatmod && !p.voice);
@@ -51,7 +53,8 @@ namespace MCGalaxy.Commands.Chatting {
                 if (cantSend) {
                     p.Message("You are no longer marked as being AFK.");
                 } else {
-                    ShowMessage(p, "-λNICK%S- is no longer AFK");
+                    TimeSpan idleTime = DateTime.UtcNow - oldLastAction;
+                    ShowMessage(p, string.Format("-λNICK%S- is no longer AFK ({0})", idleTime.Shorten()));
                     p.CheckForMessageSpam();
                 }
                 OnPlayerActionEvent.Call(p, PlayerAction.UnAFK, null, cantSend);

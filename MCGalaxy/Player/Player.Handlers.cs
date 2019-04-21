@@ -308,8 +308,8 @@ namespace MCGalaxy {
                     return;
                 }
 
-                LastAction = DateTime.UtcNow;
                 if (IsAfk) CmdAfk.ToggleAfk(this, "");
+                LastAction = DateTime.UtcNow;
 
                 BlockID held = ReadBlock(buffer, offset + 8);
                 RawHeldBlock = held;
@@ -373,8 +373,8 @@ namespace MCGalaxy {
             if (!Moved() || Loading) return;
             if (DateTime.UtcNow < AFKCooldown) return;
 
-            LastAction = DateTime.UtcNow;
             if (IsAfk) CmdAfk.ToggleAfk(this, "");
+            LastAction = DateTime.UtcNow;
         }
 
         void CheckZones(Position pos) {
@@ -510,11 +510,12 @@ namespace MCGalaxy {
             if (!loggedIn) return;
             byte continued = buffer[offset + 1];
             string text = NetUtils.ReadString(buffer, offset + 2);
-            LastAction = DateTime.UtcNow;
             if (FilterChat(ref text, continued)) return;
 
             if (text != "/afk" && IsAfk)
                 CmdAfk.ToggleAfk(this, "");
+
+            LastAction = DateTime.UtcNow;
 
             // Typing //Command appears in chat as /command
             // Suggested by McMrCat
