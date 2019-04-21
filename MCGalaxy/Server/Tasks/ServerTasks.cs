@@ -112,7 +112,7 @@ namespace MCGalaxy.Tasks {
                     DateTime lastAction = p.LastAction;
                     if (lastAction.Add(Server.Config.AutoAfkTime) < DateTime.UtcNow) {
                         string afkTime = Server.Config.AutoAfkTime.Shorten(true, true);
-                        CmdAfk.ToggleAfk(p, "auto: Not moved for " + afkTime);
+                        CmdAfk.ToggleAfk(p, "auto: Not moved for " + afkTime, true);
                         p.AutoAfk = true;
                         p.LastAction = lastAction;
                     }
