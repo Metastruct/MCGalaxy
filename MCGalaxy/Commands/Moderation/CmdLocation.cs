@@ -31,8 +31,8 @@ namespace MCGalaxy.Commands.Moderation {
         }
 
         class GeoInfo {
-            [ConfigString] public string region;
-            [ConfigString] public string country;
+            [ConfigString] public string region = null;
+            [ConfigString] public string country = null;
         }
         static ConfigElement[] elems;
 
