@@ -31,8 +31,8 @@ namespace MCGalaxy.Commands.Moderation {
         }
 
         class GeoInfo {
-            [ConfigString] public string region;
-            [ConfigString] public string country;
+            [ConfigString] public string region = null;
+            [ConfigString] public string country = null;
         }
         static ConfigElement[] elems;
 
@@ -56,15 +56,15 @@ namespace MCGalaxy.Commands.Moderation {
             }
 
             JsonObject obj = (JsonObject) Json.ParseStream(ctx);
-            GeoInfo info = new GeoInfo();
             if (obj == null || !ctx.Success) {
                 p.Message("%WError parsing GeoIP info");
                 return;
             }
 
             if (elems == null) elems = ConfigElement.GetAll(typeof(GeoInfo));
-            obj.Deserialise(elems, info);
 
+            GeoInfo info = new GeoInfo();
+            obj.Deserialise(elems, info);
 
             string suffix = HasExtraPerm(p, data.Rank, 1) ? "&b{1}%S/&b{2}" : "&b{2}";
             string target = name == null ? ip : "of " + PlayerInfo.GetColoredName(p, name);
