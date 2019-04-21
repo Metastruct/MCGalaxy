@@ -33,50 +33,56 @@ using BlockRaw = System.Byte;
 namespace MCGalaxy {
     public partial class Player : IDisposable {
         const string mustAgreeMsg = "You must read /rules then agree to them with /agree!";
-        
+
         internal bool HasBlockChange() { return Blockchange != null; }
         internal bool DoBlockchangeCallback(ushort x, ushort y, ushort z, BlockID block) {
-            lastClick.X = x; lastClick.Y = y; lastClick.Z = z;
+            lastClick.X = x;
+            lastClick.Y = y;
+            lastClick.Z = z;
             if (Blockchange == null) return false;
-            
+
             Blockchange(this, x, y, z, block);
             return true;
         }
 
         public void HandleManualChange(ushort x, ushort y, ushort z, bool placing,
-                                       BlockID block, bool checkPlaceDist) {
+            BlockID block, bool checkPlaceDist) {
             BlockID old = level.GetBlock(x, y, z);
             if (old == Block.Invalid) return;
-            
+
             if (jailed || frozen || !canBuild) { RevertBlock(x, y, z); return; }
             if (!agreed) {
                 Message(mustAgreeMsg);
-                RevertBlock(x, y, z); return;
+                RevertBlock(x, y, z);
+                return;
             }
-            
+
             if (level.IsMuseum && Blockchange == null) return;
             bool deletingBlock = !painting && !placing;
 
             if (Server.Config.verifyadmins && adminpen) {
                 Message("%WYou must first verify with %T/Pass [Password]");
-                RevertBlock(x, y, z); return;
+                RevertBlock(x, y, z);
+                return;
             }
 
-            if ( LSGame.Instance.Running && LSGame.Instance.Map == level && LSGame.Instance.IsPlayerDead(this) ) {
+            if (LSGame.Instance.Running && LSGame.Instance.Map == level && LSGame.Instance.IsPlayerDead(this)) {
                 Message("You are out of the round, and cannot build.");
-                RevertBlock(x, y, z); return;
+                RevertBlock(x, y, z);
+                return;
             }
 
             if (ClickToMark && DoBlockchangeCallback(x, y, z, block)) return;
-            
+
             OnBlockChangeEvent.Call(this, x, y, z, block, placing);
             if (cancelBlock) { cancelBlock = false; return; }
 
             if (old >= Block.Air_Flood && old <= Block.Door_Air_air) {
                 Message("Block is active, you cannot disturb it.");
-                RevertBlock(x, y, z); return;
+                RevertBlock(x, y, z);
+                return;
             }
-            
+
             if (!deletingBlock) {
                 PhysicsArgs args = level.foundInfo(x, y, z);
                 if (args.HasWait) return;
@@ -85,29 +91,31 @@ namespace MCGalaxy {
             if (Rank == LevelPermission.Banned) return;
             if (checkPlaceDist) {
                 int dx = Pos.BlockX - x, dy = Pos.BlockY - y, dz = Pos.BlockZ - z;
-                int diff = (int)Math.Sqrt(dx * dx + dy * dy + dz * dz);
-                
+                int diff = (int) Math.Sqrt(dx * dx + dy * dy + dz * dz);
+
                 if (diff > ReachDistance + 4) {
                     Logger.Log(LogType.Warning, "{0} attempted to build with a {1} distance offset", name, diff);
                     Message("You can't build that far away.");
-                    RevertBlock(x, y, z); return;
+                    RevertBlock(x, y, z);
+                    return;
                 }
             }
 
             BlockID held = block;
             block = BlockBindings[block];
             if (!CheckManualChange(old, block, deletingBlock)) {
-                RevertBlock(x, y, z); return;
+                RevertBlock(x, y, z);
+                return;
             }
             if (ModeBlock != Block.Invalid) block = ModeBlock;
-            
+
             // Ignores updating blocks that are the same and revert block back only to the player
             BlockID newB = deletingBlock ? Block.Air : block;
             if (old == newB) {
                 if (painting || !Block.VisuallyEquals(old, held)) RevertBlock(x, y, z);
                 return;
             }
-            
+
             if (deletingBlock) {
                 bool deleted = DeleteBlock(old, x, y, z, block);
             } else {
@@ -117,7 +125,7 @@ namespace MCGalaxy {
                 if (!placed && painting) RevertBlock(x, y, z);
             }
         }
-        
+
         internal bool CheckManualChange(BlockID old, BlockID block, bool deleteMode) {
             if (!group.Blocks[old] && !level.BuildIn(old) && !Block.AllowBreak(old)) {
                 string action = deleteMode ? "delete" : "replace";
@@ -126,7 +134,7 @@ namespace MCGalaxy {
             }
             return CommandParser.IsBlockAllowed(this, "place", block);
         }
-        
+
         bool DeleteBlock(BlockID old, ushort x, ushort y, ushort z, BlockID block) {
             if (deleteMode) { return ChangeBlock(x, y, z, Block.Air) == 2; }
 
@@ -146,47 +154,47 @@ namespace MCGalaxy {
             }
             return ChangeBlock(x, y, z, block) == 2;
         }
-        
+
         /// <summary> Updates the block at the given position, mainly intended for manual changes by the player. </summary>
         /// <remarks> Adds to the BlockDB. Also turns block below to grass/dirt depending on light. </remarks>
         /// <returns> Return code from DoBlockchange </returns>
         public int ChangeBlock(ushort x, ushort y, ushort z, BlockID block) {
             BlockID old = level.GetBlock(x, y, z);
             int type = level.DoBlockchange(this, x, y, z, block);
-            if (type == 0) return type;                           // no change performed
+            if (type == 0) return type; // no change performed
             if (type == 2) level.BroadcastChange(x, y, z, block); // different visually
-            
+
             ushort flags = BlockDBFlags.ManualPlace;
             if (painting && CollideType.IsSolid(level.CollideType(old))) {
                 flags = BlockDBFlags.Painted;
             }
-            
-            level.BlockDB.Cache.Add(this, x, y, z, flags, old, block); 
+
+            level.BlockDB.Cache.Add(this, x, y, z, flags, old, block);
             y--; // check for growth at block below
-            
+
             bool grow = level.Config.GrassGrow && (level.physics == 0 || level.physics == 5);
             if (!grow || level.CanAffect(this, x, y, z) != null) return type;
             BlockID below = level.GetBlock(x, y, z);
-            
+
             BlockID grass = level.Props[below].GrassBlock;
             if (grass != Block.Invalid && block == Block.Air) {
                 level.Blockchange(this, x, y, z, grass);
             }
-            
+
             BlockID dirt = level.Props[below].DirtBlock;
             if (dirt != Block.Invalid && !level.LightPasses(block)) {
                 level.Blockchange(this, x, y, z, dirt);
             }
             return type;
         }
-        
+
         internal int ProcessReceived(byte[] buffer, int bufferLen) {
             int processedLen = 0;
             try {
                 while (processedLen < bufferLen) {
                     int packetLen = PacketSize(buffer[processedLen]);
                     if (packetLen == -1) return -1;
-                    
+
                     // Partial packet data received
                     if (processedLen + packetLen > bufferLen) return processedLen;
                     HandlePacket(buffer, processedLen);
@@ -197,20 +205,32 @@ namespace MCGalaxy {
             }
             return processedLen;
         }
-        
+
         int PacketSize(byte opcode) {
             switch (opcode) {
-                case (byte)'G': return -1; // HTTP GET, ignore it
-                case Opcode.Handshake:      return 1 + 1 + 64 + 64 + 1;
-                case Opcode.SetBlockClient: return 1 + 6 + 1 + (hasExtBlocks ? 2 : 1);
-                case Opcode.EntityTeleport: return 1 + 6 + 2 + (hasExtPositions ? 6 : 0) + (hasExtBlocks ? 2 : 1);
-                case Opcode.Message:        return 1 + 1 + 64;
-                case Opcode.CpeExtInfo:     return 1 + 64 + 2;
-                case Opcode.CpeExtEntry:    return 1 + 64 + 4;
-                case Opcode.CpeCustomBlockSupportLevel: return 1 + 1;
-                case Opcode.CpePlayerClick: return 1 + 1 + 1 + 2 + 2 + 1 + 2 + 2 + 2 + 1;
-                case Opcode.Ping:           return 1;
-                case Opcode.CpeTwoWayPing:  return 1 + 1 + 2;
+                case (byte)
+                'G':
+                    return -1; // HTTP GET, ignore it
+                case Opcode.Handshake:
+                    return 1 + 1 + 64 + 64 + 1;
+                case Opcode.SetBlockClient:
+                    return 1 + 6 + 1 + (hasExtBlocks ? 2 : 1);
+                case Opcode.EntityTeleport:
+                    return 1 + 6 + 2 + (hasExtPositions ? 6 : 0) + (hasExtBlocks ? 2 : 1);
+                case Opcode.Message:
+                    return 1 + 1 + 64;
+                case Opcode.CpeExtInfo:
+                    return 1 + 64 + 2;
+                case Opcode.CpeExtEntry:
+                    return 1 + 64 + 4;
+                case Opcode.CpeCustomBlockSupportLevel:
+                    return 1 + 1;
+                case Opcode.CpePlayerClick:
+                    return 1 + 1 + 1 + 2 + 2 + 1 + 2 + 2 + 2 + 1;
+                case Opcode.Ping:
+                    return 1;
+                case Opcode.CpeTwoWayPing:
+                    return 1 + 1 + 2;
 
                 default:
                     if (!nonPlayerClient) {
@@ -220,35 +240,45 @@ namespace MCGalaxy {
                     return -1;
             }
         }
-        
+
         void HandlePacket(byte[] buffer, int offset) {
             switch (buffer[offset]) {
-                case Opcode.Ping: break;
+                case Opcode.Ping:
+                    break;
                 case Opcode.Handshake:
-                    HandleLogin(buffer, offset); break;
+                    HandleLogin(buffer, offset);
+                    break;
                 case Opcode.SetBlockClient:
                     if (!loggedIn) break;
-                    HandleBlockchange(buffer, offset); break;
+                    HandleBlockchange(buffer, offset);
+                    break;
                 case Opcode.EntityTeleport:
                     if (!loggedIn) break;
-                    HandleMovement(buffer, offset); break;
+                    HandleMovement(buffer, offset);
+                    break;
                 case Opcode.Message:
                     if (!loggedIn) break;
-                    HandleChat(buffer, offset); break;
+                    HandleChat(buffer, offset);
+                    break;
                 case Opcode.CpeExtInfo:
-                    HandleExtInfo(buffer, offset); break;
+                    HandleExtInfo(buffer, offset);
+                    break;
                 case Opcode.CpeExtEntry:
-                    HandleExtEntry(buffer, offset); break;
+                    HandleExtEntry(buffer, offset);
+                    break;
                 case Opcode.CpeCustomBlockSupportLevel:
-                    customBlockSupportLevel = buffer[offset + 1]; break;
+                    customBlockSupportLevel = buffer[offset + 1];
+                    break;
                 case Opcode.CpePlayerClick:
-                    HandlePlayerClicked(buffer, offset); break;
+                    HandlePlayerClicked(buffer, offset);
+                    break;
                 case Opcode.CpeTwoWayPing:
-                    HandleTwoWayPing(buffer, offset); break;
+                    HandleTwoWayPing(buffer, offset);
+                    break;
             }
         }
-        
-        #if TEN_BIT_BLOCKS
+
+#if TEN_BIT_BLOCKS
         BlockID ReadBlock(byte[] buffer, int offset) {
             BlockID block;
             if (hasExtBlocks) {
@@ -256,13 +286,13 @@ namespace MCGalaxy {
             } else {
                 block = buffer[offset];
             }
-            
+
             if (block > Block.MaxRaw) block = Block.MaxRaw;
             return Block.FromRaw(block);
         }
-        #else
+#else
         BlockID ReadBlock(byte[] buffer, int offset) { return Block.FromRaw(buffer[offset]); }
-        #endif
+#endif
 
         void HandleBlockchange(byte[] buffer, int offset) {
             try {
@@ -270,49 +300,53 @@ namespace MCGalaxy {
                 ushort x = NetUtils.ReadU16(buffer, offset + 1);
                 ushort y = NetUtils.ReadU16(buffer, offset + 3);
                 ushort z = NetUtils.ReadU16(buffer, offset + 5);
-                
+
                 byte action = buffer[offset + 7];
                 if (action > 1) {
                     const string msg = "Unknown block action!";
-                    Leave(msg, msg, true); return;
+                    Leave(msg, msg, true);
+                    return;
                 }
-                
+
                 LastAction = DateTime.UtcNow;
                 if (IsAfk) CmdAfk.ToggleAfk(this, "");
-                
+
                 BlockID held = ReadBlock(buffer, offset + 8);
                 RawHeldBlock = held;
-                
+
                 if ((action == 0 || held == Block.Air) && !level.Config.Deletable) {
                     Message("Deleting blocks is disabled in this level.");
-                    RevertBlock(x, y, z); return;
+                    RevertBlock(x, y, z);
+                    return;
                 } else if (action == 1 && !level.Config.Buildable) {
                     Message("Placing blocks is disabled in this level.");
-                    RevertBlock(x, y, z); return;
+                    RevertBlock(x, y, z);
+                    return;
                 }
-                
+
                 if (held >= Block.Extended) {
                     if (!hasBlockDefs || level.CustomBlockDefs[held] == null) {
                         Message("Invalid block type: " + Block.ToRaw(held));
-                        RevertBlock(x, y, z); return;
+                        RevertBlock(x, y, z);
+                        return;
                     }
                 }
                 HandleManualChange(x, y, z, action != 0, held, true);
-            } catch ( Exception e ) {
+            } catch (Exception e) {
                 // Don't ya just love it when the server tattles?
                 Chat.MessageOps(DisplayName + " has triggered a block change error");
                 Chat.MessageOps(e.GetType().ToString() + ": " + e.Message);
                 Logger.LogError(e);
             }
         }
-        
+
         void HandleMovement(byte[] buffer, int offset) {
             if (!loggedIn || trainGrab || following.Length > 0) { CheckBlocks(Pos, Pos); return; }
             if (Supports(CpeExt.HeldBlock)) {
                 RawHeldBlock = ReadBlock(buffer, offset + 1);
                 if (hasExtBlocks) offset++; // corret offset for position later
             }
-            
+
             int x, y, z;
             if (hasExtPositions) {
                 x = NetUtils.ReadI32(buffer, offset + 2);
@@ -324,66 +358,66 @@ namespace MCGalaxy {
                 y = NetUtils.ReadI16(buffer, offset + 4);
                 z = NetUtils.ReadI16(buffer, offset + 6);
             }
-            
+
             byte yaw = buffer[offset + 8], pitch = buffer[offset + 9];
             Position next = new Position(x, y, z);
             CheckBlocks(Pos, next);
 
             OnPlayerMoveEvent.Call(this, next, yaw, pitch);
             if (cancelmove) { cancelmove = false; return; }
-            
+
             Pos = next;
             SetYawPitch(yaw, pitch);
             CheckZones(next);
-            
+
             if (!Moved() || Loading) return;
             if (DateTime.UtcNow < AFKCooldown) return;
-            
+
             LastAction = DateTime.UtcNow;
             if (IsAfk) CmdAfk.ToggleAfk(this, "");
         }
-        
+
         void CheckZones(Position pos) {
             Vec3S32 P = pos.BlockCoords;
             Zone zone = ZoneIn;
-            
+
             // player hasn't moved from current zone
             if (zone != null && zone.Contains(P.X, P.Y, P.Z)) return;
             Zone[] zones = level.Zones.Items;
             if (zones.Length == 0) return;
-            
+
             for (int i = 0; i < zones.Length; i++) {
                 if (!zones[i].Contains(P.X, P.Y, P.Z)) continue;
-                
+
                 ZoneIn = zones[i];
                 OnChangedZoneEvent.Call(this);
                 return;
             }
-            
+
             ZoneIn = null;
             if (zone != null) OnChangedZoneEvent.Call(this);
         }
-        
+
         int CurrentEnvProp(EnvProp i, Zone zone) {
-            int value   = Server.Config.GetEnvProp(i);
-            bool block  = i == EnvProp.SidesBlock || i == EnvProp.EdgeBlock;
+            int value = Server.Config.GetEnvProp(i);
+            bool block = i == EnvProp.SidesBlock || i == EnvProp.EdgeBlock;
             int invalid = block ? Block.Invalid : -1;
-            
+
             if (level.Config.GetEnvProp(i) != invalid) {
                 value = level.Config.GetEnvProp(i);
             }
             if (zone != null && zone.Config.GetEnvProp(i) != invalid) {
                 value = zone.Config.GetEnvProp(i);
             }
-                
+
             if (value == invalid) value = level.Config.DefaultEnvProp(i, level.Height);
-            if (block)            value = ConvertBlock((BlockID)value);
+            if (block) value = ConvertBlock((BlockID) value);
             return value;
         }
-        
+
         public void SendCurrentEnv() {
             Zone zone = ZoneIn;
-            
+
             for (int i = 0; i <= 5; i++) {
                 string col = Server.Config.GetColor(i);
                 if (level.Config.GetColor(i) != "") {
@@ -392,63 +426,65 @@ namespace MCGalaxy {
                 if (zone != null && zone.Config.GetColor(i) != "") {
                     col = zone.Config.GetColor(i);
                 }
-                if (Supports(CpeExt.EnvColors)) SendEnvColor((byte)i, col);
+                if (Supports(CpeExt.EnvColors)) SendEnvColor((byte) i, col);
             }
-            
+
             if (Supports(CpeExt.EnvMapAspect)) {
                 for (EnvProp i = 0; i < EnvProp.Max; i++) {
                     int value = CurrentEnvProp(i, zone);
                     Send(Packet.EnvMapProperty(i, value));
                 }
             }
-            
+
             if (Supports(CpeExt.EnvWeatherType)) {
                 int weather = CurrentEnvProp(EnvProp.Weather, zone);
-                Send(Packet.EnvWeatherType((byte)weather));
+                Send(Packet.EnvWeatherType((byte) weather));
             }
         }
-        
+
         void CheckBlocks(Position prev, Position next) {
             try {
-                Vec3U16 P = (Vec3U16)prev.BlockCoords;
+                Vec3U16 P = (Vec3U16) prev.BlockCoords;
                 AABB bb = ModelBB.OffsetPosition(next);
                 int index = level.PosToInt(P.X, P.Y, P.Z);
-                    
+
                 if (level.Config.SurvivalDeath) {
                     bool movingDown = next.Y < prev.Y;
                     PlayerPhysics.Drown(this, bb);
-                    PlayerPhysics.Fall(this,  bb, movingDown);
+                    PlayerPhysics.Fall(this, bb, movingDown);
                 }
                 lastFallY = bb.Min.Y;
-                
+
                 PlayerPhysics.Walkthrough(this, bb);
                 oldIndex = index;
             } catch (Exception ex) {
                 Logger.LogError(ex);
             }
         }
-        
+
         bool Moved() { return lastRot.RotY != Rot.RotY || lastRot.HeadX != Rot.HeadX; }
-        
+
         public bool HandleDeath(BlockID block, string customMsg = "", bool explode = false, bool immediate = false) {
             if (!immediate && lastDeath.AddSeconds(2) > DateTime.UtcNow) return false;
             if (invincible || hidden) return false;
-            
+
             cancelDeath = false;
             OnPlayerDeathEvent.Call(this, block);
             if (cancelDeath) { cancelDeath = false; return false; }
 
-            onTrain = false; trainInvincible = false; trainGrab = false;
-            ushort x = (ushort)Pos.BlockX, y = (ushort)Pos.BlockY, z = (ushort)Pos.BlockZ;
-            
+            onTrain = false;
+            trainInvincible = false;
+            trainGrab = false;
+            ushort x = (ushort) Pos.BlockX, y = (ushort) Pos.BlockY, z = (ushort) Pos.BlockZ;
+
             string deathMsg = level.Props[block].DeathMessage;
             if (deathMsg != null) {
                 Chat.MessageFromLevel(this, deathMsg.Replace("@p", "λNICK"));
             }
-            
+
             if (block == Block.RocketHead) level.MakeExplosion(x, y, z, 0);
             if (block == Block.Creeper) level.MakeExplosion(x, y, z, 1);
-            
+
             if (block == Block.Stone || block == Block.Cobblestone) {
                 if (explode) level.MakeExplosion(x, y, z, 1);
                 if (block == Block.Stone) {
@@ -457,7 +493,7 @@ namespace MCGalaxy {
                     Chat.MessageFromLevel(this, customMsg.Replace("@p", "λNICK"));
                 }
             }
-            
+
             PlayerActions.Respawn(this);
             TimesDied++;
             // NOTE: If deaths column is ever increased past 16 bits, remove this clamp
@@ -479,7 +515,7 @@ namespace MCGalaxy {
 
             if (text != "/afk" && IsAfk)
                 CmdAfk.ToggleAfk(this, "");
-            
+
             // Typing //Command appears in chat as /command
             // Suggested by McMrCat
             if (text.StartsWith("//")) {
@@ -498,10 +534,10 @@ namespace MCGalaxy {
 
             if (LSGame.Instance.HandlesChatMessage(this, text)) return;
             if (ZSGame.Instance.HandlesChatMessage(this, text)) return;
-            
+
             // Put this after vote collection so that people can vote even when chat is moderated
             if (Server.chatmod && !voice) { Message("Chat moderation is on, you cannot speak."); return; }
-            
+
             // Filter out bad words
             if (Server.Config.ProfanityFiltering) text = ProfanityFilter.Parse(text);
 
@@ -511,14 +547,14 @@ namespace MCGalaxy {
             OnPlayerChatEvent.Call(this, text);
             if (cancelchat) { cancelchat = false; return; }
 
-            if (Chatroom != null) { 
+            if (Chatroom != null) {
                 string roomPrefix = "<ChatRoom: " + Chatroom + "> λNICK: &f";
                 Chat.MessageChat(ChatScope.Chatroom, this, roomPrefix + text, Chatroom, null);
             } else {
                 Chat.MessageChat(this, "λFULL: &f" + text, null, true);
             }
         }
-        
+
         bool FilterChat(ref string text, byte continued) {
             // handles the /womid client message, which displays the WoM vrersion
             if (text.StartsWith("/womid")) {
@@ -526,7 +562,7 @@ namespace MCGalaxy {
                 UsingWom = true;
                 return true;
             }
-            
+
             if (Supports(CpeExt.LongerMessages) && continued != 0) {
                 partialMessage += text;
                 if (text.Length < NetUtils.StringSize) partialMessage += " ";
@@ -554,19 +590,20 @@ namespace MCGalaxy {
             text = Regex.Replace(text, "  +", " ");
             if (text.IndexOf('&') >= 0) {
                 const string msg = "Illegal character in chat message!";
-                Leave(msg, msg, true); return true;
+                Leave(msg, msg, true);
+                return true;
             }
             return text.Length == 0;
         }
-        
+
         static bool IsPartialSpaced(string text) {
             return text.EndsWith(" >") || text.EndsWith(" /");
         }
-        
+
         static bool IsPartialJoined(string text) {
             return text.EndsWith(" <") || text.EndsWith(" \\");
         }
-        
+
         bool DoCommand(string text) {
             // Typing / repeats last command executed
             if (text == "/") {
@@ -581,13 +618,13 @@ namespace MCGalaxy {
             } else {
                 return false;
             }
-            
-            string cmd, args;            
+
+            string cmd, args;
             text.Separate(out cmd, out args);
             HandleCommand(cmd, args, DefaultCmdData);
             return true;
         }
-        
+
         string HandleJoker(string text) {
             if (!joker) return text;
             Logger.Log(LogType.PlayerChat, "<JOKER>: {0}: {1}", name, text);
@@ -595,45 +632,46 @@ namespace MCGalaxy {
 
             TextFile jokerFile = TextFile.Files["Joker"];
             jokerFile.EnsureExists();
-            
+
             string[] lines = jokerFile.GetText();
             Random rnd = new Random();
             return lines.Length > 0 ? lines[rnd.Next(lines.Length)] : text;
         }
-        
+
         public void HandleCommand(string cmd, string args, CommandData data) {
             cmd = cmd.ToLower();
             if (!Server.Config.CmdSpamCheck && !CheckMBRecursion(data)) return;
-            
+
             try {
                 Command command = GetCommand(ref cmd, ref args, data);
                 if (command == null) return;
-                
+
                 Thread thread = new Thread(() => UseCommand(command, args, data));
                 try { thread.Name = "MCG_CMD_" + cmd; } catch { }
                 thread.IsBackground = true;
                 thread.Start();
             } catch (Exception e) {
-                Logger.LogError(e); 
+                Logger.LogError(e);
                 Message("%WCommand failed");
             }
         }
-        
+
         public void HandleCommands(List<string> cmds, CommandData data) {
             List<string> messages = new List<string>(cmds.Count);
             List<Command> commands = new List<Command>(cmds.Count);
             if (!Server.Config.CmdSpamCheck && !CheckMBRecursion(data)) return;
-            
+
             try {
                 foreach (string raw in cmds) {
                     string[] parts = raw.SplitSpaces(2);
                     string cmd = parts[0].ToLower();
                     string args = parts.Length > 1 ? parts[1] : "";
-                    
+
                     Command command = GetCommand(ref cmd, ref args, data);
                     if (command == null) return;
-                    
-                    messages.Add(args); commands.Add(command);
+
+                    messages.Add(args);
+                    commands.Add(command);
                 }
 
                 Thread thread = new Thread(() => UseCommands(commands, messages, data));
@@ -641,11 +679,11 @@ namespace MCGalaxy {
                 thread.IsBackground = true;
                 thread.Start();
             } catch (Exception e) {
-                Logger.LogError(e); 
+                Logger.LogError(e);
                 Message("%WCommand failed.");
             }
         }
-        
+
         bool CheckMBRecursion(CommandData data) {
             if (data.Context == CommandContext.MessageBlock) {
                 mbRecursion++;
@@ -655,78 +693,88 @@ namespace MCGalaxy {
                     Message("%WInfinite message block loop detected, aborting");
                     return false;
                 }
-            } else if (data.Context == CommandContext.Normal) { 
-                mbRecursion = 0; 
+            } else if (data.Context == CommandContext.Normal) {
+                mbRecursion = 0;
             }
             return true;
         }
-        
+
         bool CheckCommand(string cmd) {
             if (cmd.Length == 0) { Message("No command entered."); return false; }
             if (Server.Config.AgreeToRulesOnEntry && !agreed && !(cmd == "agree" || cmd == "rules" || cmd == "disagree" || cmd == "pass" || cmd == "setpass")) {
-                Message(mustAgreeMsg); return false;
+                Message(mustAgreeMsg);
+                return false;
             }
             if (jailed) {
-                Message("You cannot use any commands while jailed."); return false;
+                Message("You cannot use any commands while jailed.");
+                return false;
             }
             if (Server.Config.verifyadmins && adminpen && !(cmd == "pass" || cmd == "setpass")) {
-                Message("%WYou must verify first with %T/Pass [Password]"); return false;
+                Message("%WYou must verify first with %T/Pass [Password]");
+                return false;
             }
-            
+
             TimeSpan delta = cmdUnblocked - DateTime.UtcNow;
             if (delta.TotalSeconds > 0) {
-                int secs = (int)Math.Ceiling(delta.TotalSeconds);
-                Message("Blocked from using commands for another " + secs + " seconds"); return false;
+                int secs = (int) Math.Ceiling(delta.TotalSeconds);
+                Message("Blocked from using commands for another " + secs + " seconds");
+                return false;
             }
             return true;
         }
-        
+
         Command GetCommand(ref string cmdName, ref string cmdArgs, CommandData data) {
             if (!CheckCommand(cmdName)) return null;
             Command.Search(ref cmdName, ref cmdArgs);
-            
+
             byte bindIndex;
             if (byte.TryParse(cmdName, out bindIndex) && bindIndex < CmdBindings.Length) {
-                if (CmdBindings[bindIndex] == null) { 
-                    Message("No command is bound to: %T/" + cmdName); return null; 
+                if (CmdBindings[bindIndex] == null) {
+                    Message("No command is bound to: %T/" + cmdName);
+                    return null;
                 }
-                
+
                 CmdBindings[bindIndex].Separate(out cmdName, out cmdArgs);
                 Command.Search(ref cmdName, ref cmdArgs);
             }
-            
+
             OnPlayerCommandEvent.Call(this, cmdName, cmdArgs, data);
             if (cancelcommand) { cancelcommand = false; return null; }
-            
+
             Command command = Command.Find(cmdName);
             if (command == null) {
                 if (Block.Parse(this, cmdName) != Block.Invalid) {
-                    cmdArgs = cmdName; cmdName = "mode";
+                    cmdArgs = cmdName;
+                    cmdName = "mode";
                     command = Command.Find("Mode");
                 } else {
                     Logger.Log(LogType.CommandUsage, "{0} tried to use unknown command: /{1} {2}", name, cmdName, cmdArgs);
-                    Message("Unknown command \"" + cmdName + "\"."); return null;
+                    Message("Unknown command \"" + cmdName + "\".");
+                    return null;
                 }
             }
 
             if (!CanUse(command)) {
                 CommandPerms.Find(command.name).MessageCannotUse(this);
-                return null; 
+                return null;
             }
-            
+
             string reason = Command.GetDisabledReason(command.Enabled);
             if (reason != null) {
-                Message("Command is disabled as " + reason); return null;
+                Message("Command is disabled as " + reason);
+                return null;
             }
             if (level.IsMuseum && !command.museumUsable) {
-                Message("Cannot use this command while in a museum."); return null;
+                Message("Cannot use this command while in a museum.");
+                return null;
             }
             if (frozen && !command.UseableWhenFrozen) {
-                Message("Cannot use this command while frozen."); return null;
+                Message("Cannot use this command while frozen.");
+                return null;
             }
             return command;
         }
-        
+
         bool UseCommand(Command command, string message, CommandData data) {
             string cmd = command.name;
             if (command.LogUsage) {
@@ -738,10 +786,10 @@ namespace MCGalaxy {
             try { //opstats patch (since 5.5.11)
                 if (Server.Opstats.CaselessContains(cmd) || (cmd.CaselessEq("review") && message.CaselessEq("next") && Server.reviewlist.Count > 0)) {
                     Database.Backend.AddRow("Opstats", "Time, Name, Cmd, Cmdmsg",
-                                            DateTime.Now.ToString(Database.DateFormat), name, cmd, message);
+                        DateTime.Now.ToString(Database.DateFormat), name, cmd, message);
                 }
             } catch { }
-            
+
             try {
                 command.Use(this, message, data);
             } catch (Exception e) {
@@ -753,7 +801,7 @@ namespace MCGalaxy {
             if (spamChecker != null && spamChecker.CheckCommandSpam()) return false;
             return true;
         }
-        
+
         bool UseCommands(List<Command> commands, List<string> messages, CommandData data) {
             for (int i = 0; i < messages.Count; i++) {
                 if (!UseCommand(commands[i], messages[i], data)) return false;
