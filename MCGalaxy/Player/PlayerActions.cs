@@ -36,6 +36,7 @@ namespace MCGalaxy {
             bool didJoin = false;
 
             try {
+                MCGalaxy.Commands.Misc.CmdTp.SavePreTeleportState(p);
                 didJoin = name == null ? GotoLevel(p, lvl) : GotoMap(p, name);
             } finally {
                 Interlocked.Exchange(ref p.UsingGoto, 0);
