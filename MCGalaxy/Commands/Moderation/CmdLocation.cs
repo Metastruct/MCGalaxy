@@ -5,10 +5,10 @@
     the GNU General Public License, Version 3 (the "Licenses"); you may
     not use this file except in compliance with the Licenses. You may
     obtain a copy of the Licenses at
-    
+
     http://www.opensource.org/licenses/ecl2.php
     http://www.gnu.org/licenses/gpl-3.0.html
-    
+
     Unless required by applicable law or agreed to in writing,
     software distributed under the Licenses are distributed on an "AS IS"
     BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -27,47 +27,49 @@ namespace MCGalaxy.Commands.Moderation {
         public override string type { get { return CommandTypes.Moderation; } }
         public override LevelPermission defaultRank { get { return LevelPermission.Admin; } }
         public override CommandPerm[] ExtraPerms {
-            get { return new[] { new CommandPerm(LevelPermission.Admin, "can see state/province") }; }
+            get { return new [] { new CommandPerm(LevelPermission.Admin, "can see state/province") }; }
         }
-        
+
         class GeoInfo {
             [ConfigString] public string region;
             [ConfigString] public string country;
         }
         static ConfigElement[] elems;
-        
+
         public override void Use(Player p, string message, CommandData data) {
             if (message.Length == 0) {
                 if (p.IsSuper) { SuperRequiresArgs(p, "player name or IP"); return; }
                 message = p.name;
             }
-            
+
             string name, ip = ModActionCmd.FindIP(p, message, "Location", out name);
             if (ip == null) return;
-            
+
             if (HttpUtil.IsPrivateIP(ip)) {
-                p.Message("%WPlayer has an internal IP, cannot trace"); return;
+                p.Message("%WPlayer has an internal IP, cannot trace");
+                return;
             }
 
             JsonContext ctx = new JsonContext();
-            using (WebClient client = HttpUtil.CreateWebClient()) {
+            using(WebClient client = HttpUtil.CreateWebClient()) {
                 ctx.Val = client.DownloadString("http://ipinfo.io/" + ip + "/geo");
             }
-            
-            JsonObject obj = (JsonObject)Json.ParseStream(ctx);
+
+            JsonObject obj = (JsonObject) Json.ParseStream(ctx);
             GeoInfo info = new GeoInfo();
             if (obj == null || !ctx.Success) {
-                p.Message("%WError parsing GeoIP info"); return;
+                p.Message("%WError parsing GeoIP info");
+                return;
             }
-            
+
             if (elems == null) elems = ConfigElement.GetAll(typeof(GeoInfo));
-            obj.Deserialise(elems, info);            
-            
+            obj.Deserialise(elems, info);
+
             string suffix = HasExtraPerm(p, data.Rank, 1) ? "&b{1}%S/&b{2}" : "&b{2}";
             string target = name == null ? ip : "of " + PlayerInfo.GetColoredName(p, name);
             p.Message("The IP {0} %Straces to: " + suffix, target, info.region, info.country);
         }
-        
+
         public override void Help(Player p) {
             p.Message("%T/Location [name/IP]");
             p.Message("%HTracks down location of the given IP, or IP player is on.");
