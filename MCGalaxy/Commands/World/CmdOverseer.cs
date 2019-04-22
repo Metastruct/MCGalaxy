@@ -1,14 +1,14 @@
 /*
     Copyright 2011 MCForge
-        
+
     Dual-licensed under the Educational Community License, Version 2.0 and
     the GNU General Public License, Version 3 (the "Licenses"); you may
     not use this file except in compliance with the Licenses. You may
     obtain a copy of the Licenses at
-    
+
     http://www.opensource.org/licenses/ecl2.php
     http://www.gnu.org/licenses/gpl-3.0.html
-    
+
     Unless required by applicable law or agreed to in writing,
     software distributed under the Licenses are distributed on an "AS IS"
     BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -26,32 +26,34 @@ namespace MCGalaxy.Commands.World {
         public override LevelPermission defaultRank { get { return LevelPermission.Builder; } }
         public override bool SuperUseable { get { return false; } }
         public override CommandAlias[] Aliases {
-            get { return new[] { new CommandAlias("Realm"), new CommandAlias("MyRealm") }; }
+            get { return new [] { new CommandAlias("Realm"), new CommandAlias("MyRealm") }; }
         }
-        
+
         public override void Use(Player p, string message, CommandData data) {
             if (message.Length == 0) { Help(p); return; }
             string[] args = message.SplitSpaces(3);
             string cmd = args[0];
             string arg1 = args.Length > 1 ? args[1] : "";
             string arg2 = args.Length > 2 ? args[2] : "";
-            
+
             bool mapOnly = !(cmd.CaselessEq("go") || cmd.CaselessEq("map"));
             if (mapOnly && !LevelInfo.IsRealmOwner(p.name, p.level.name)) {
-                p.Message("You may only perform that action on your own map."); return;
+                p.Message("You may only perform that action on your own map.");
+                return;
             }
-            
-            if (cmd.CaselessEq("Spawn"))           cmd = "SetSpawn";
+
+            if (cmd.CaselessEq("Spawn")) cmd = "SetSpawn";
             if (cmd.CaselessEq("BlockProperties")) cmd = "BlockProps";
-            
+
             foreach (SubCommand subCmd in subCommands) {
                 if (!subCmd.Group.CaselessEq(cmd)) continue;
-                
-                subCmd.Handler(p, arg1, arg2); return;
+
+                subCmd.Handler(p, arg1, arg2);
+                return;
             }
             Help(p);
         }
-        
+
         public override void Help(Player p, string message) {
             foreach (SubCommand subCmd in subCommands) {
                 if (!subCmd.Group.CaselessEq(message)) continue;
@@ -60,50 +62,50 @@ namespace MCGalaxy.Commands.World {
             }
             p.Message("Unrecognised command \"{0}\".", message);
         }
-        
+
         public override void Help(Player p) {
             p.Message("%T/os [command] [args]");
             p.Message("%HAllows you to modify and manage your personal realms.");
             p.Message("%HCommands: %S{0}", subCommands.Join(grp => grp.Group));
             p.Message("%HUse %T/Help os [command] %Hfor more details");
         }
-        
-        
+
+
         delegate void SubCommandHandler(Player p, string cmd, string value);
         class SubCommand {
             public string Group;
             public SubCommandHandler Handler;
             public string[] Help;
-            
+
             public SubCommand(string grpName, SubCommandHandler handler, string[] help) {
-                Group   = grpName;
+                Group = grpName;
                 Handler = handler;
-                Help    = help;
+                Help = help;
             }
         }
-        
-       List<SubCommand> subCommands = new List<SubCommand>() {
+
+        List<SubCommand> subCommands = new List<SubCommand>() {
             new SubCommand("BlockProps", HandleBlockProps, blockPropsHelp),
-            new SubCommand("Env",        HandleEnv,        envHelp),
-            new SubCommand("go",         HandleGoto,       gotoHelp),
-            new SubCommand("Kick",       HandleKick,       kickHelp),
-            new SubCommand("KickAll",    HandleKickAll,    kickAllHelp),
-            new SubCommand("lb",         HandleLevelBlock, levelBlockHelp),
+            new SubCommand("Env", HandleEnv, envHelp),
+            new SubCommand("go", HandleGoto, gotoHelp),
+            new SubCommand("Kick", HandleKick, kickHelp),
+            new SubCommand("KickAll", HandleKickAll, kickAllHelp),
+            new SubCommand("lb", HandleLevelBlock, levelBlockHelp),
             new SubCommand("LevelBlock", HandleLevelBlock, levelBlockHelp),
-            new SubCommand("Map",        HandleMap,        mapHelp),
-            new SubCommand("Preset",     HandlePreset,     presetHelp),
-            new SubCommand("SetSpawn",   HandleSpawn,      spawnHelp),
-            new SubCommand("Zone",       HandleZone,       zoneHelp),
-            new SubCommand("Zones",      HandleZones,      zonesHelp),
+            new SubCommand("Map", HandleMap, mapHelp),
+            new SubCommand("Preset", HandlePreset, presetHelp),
+            new SubCommand("SetSpawn", HandleSpawn, spawnHelp),
+            new SubCommand("Zone", HandleZone, zoneHelp),
+            new SubCommand("Zones", HandleZones, zonesHelp),
         };
-        
-        
+
+
         static void UseCommand(Player p, string cmd, string args) {
             CommandData data = default(CommandData);
             data.Rank = LevelPermission.Nobody;
             Command.Find(cmd).Use(p, args, data);
         }
-        
+
         static string NextLevel(Player p) {
             string level = p.name.ToLower();
             if (LevelInfo.MapExists(level) || LevelInfo.MapExists(level + "00")) {
@@ -112,8 +114,9 @@ namespace MCGalaxy.Commands.World {
                     if (LevelInfo.MapExists(p.name.ToLower() + i)) continue;
                     return p.name.ToLower() + i;
                 }
-                
-                p.Message("You have reached the limit for your overseer maps."); return null;
+
+                p.Message("You have reached the limit for your overseer maps.");
+                return null;
             }
             return level;
         }
@@ -136,7 +139,7 @@ namespace MCGalaxy.Commands.World {
             "%T/os blockprops [id] [action] <args> %H- Changes properties of blocks in your map.",
             "%H  See %T/Help blockprops %Hfor a list of actions",
         };
-        
+
         static string[] envHelp = new string[] {
             "%T/os env [fog/cloud/sky/shadow/sun] [hex color] %H- Changes env colors of your map.",
             "%T/os env level [height] %H- Sets the water height of your map.",
@@ -147,7 +150,7 @@ namespace MCGalaxy.Commands.World {
             "%T/os env weather [sun/rain/snow] %H- Sets weather of your map.",
             " Note: If no hex or block is given, the default will be used.",
         };
-        
+
         static string[] gotoHelp = new string[] {
             "%T/os go %H- Teleports you to your first map.",
             "%T/os go [num] %H- Teleports you to your nth map.",
@@ -156,7 +159,7 @@ namespace MCGalaxy.Commands.World {
         static string[] kickHelp = new string[] {
             "%T/os kick [name] %H- Removes that player from your map.",
         };
-        
+
         static string[] kickAllHelp = new string[] {
             "%T/os kickall %H- Removes all other players from your map.",
         };
@@ -165,7 +168,7 @@ namespace MCGalaxy.Commands.World {
             "%T/os lb [action] <args> %H- Manages custom blocks on your map.",
             "%H  See %T/Help lb %Hfor a list of actions",
         };
-        
+
         static string[] mapHelp = new string[] {
             "%T/os map add [type - default is flat] %H- Creates your map (128x128x128)",
             "%T/os map add [width] [height] [length] [theme]",
@@ -182,15 +185,15 @@ namespace MCGalaxy.Commands.World {
             "%T/os map [option] <value> %H- Toggles that map option.",
             "%H  See %T/Help map %Hfor a list of map options",
         };
-        
+
         static string[] presetHelp = new string[] {
             "%T/os preset [name] %H- Sets the env settings of your map to that preset's.",
         };
-        
+
         static string[] spawnHelp = new string[] {
             "%T/os setspawn %H- Sets the map's spawn point to your current position.",
         };
-        
+
         static string[] zoneHelp = new string[] {
             "%T/os zone add [name] %H- Allows them to build in your map.",
             "%T/os zone del all %H- Deletes all zones in your map.",
@@ -200,7 +203,7 @@ namespace MCGalaxy.Commands.World {
             "%T/os zone unblock [name] %H- Allows them to join your map.",
             "%T/os zone blacklist %H- Shows currently blacklisted players.",
         };
-        
+
         static string[] zonesHelp = new string[] {
             "%T/os zones [cmd] [args]",
             "%HManages zones in your map. See %T/Help zone",
