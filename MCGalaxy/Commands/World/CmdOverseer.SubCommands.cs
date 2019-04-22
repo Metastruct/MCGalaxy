@@ -1,14 +1,14 @@
 ﻿/*
     Copyright 2011 MCForge
-        
+
     Dual-licensed under the Educational Community License, Version 2.0 and
     the GNU General Public License, Version 3 (the "Licenses"); you may
     not use this file except in compliance with the Licenses. You may
     obtain a copy of the Licenses at
-    
+
     http://www.opensource.org/licenses/ecl2.php
     http://www.gnu.org/licenses/gpl-3.0.html
-    
+
     Unless required by applicable law or agreed to in writing,
     software distributed under the Licenses are distributed on an "AS IS"
     BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -28,9 +28,9 @@ namespace MCGalaxy.Commands.World {
             string args = ("level " + arg1 + " " + arg2).Trim();
             UseCommand(p, "BlockProperties", args);
         }
-        
+
         static void HandleEnv(Player p, string type, string value) {
-		    Level lvl = p.level;
+            Level lvl = p.level;
             if (CmdEnvironment.Handle(p, lvl, type, value, lvl.Config, lvl.ColoredName)) return;
             p.MessageLines(envHelp);
         }
@@ -46,25 +46,25 @@ namespace MCGalaxy.Commands.World {
                 }
                 map = p.name.ToLower() + map;
             }
-            
+
             if (LevelInfo.FindExact(map) == null)
                 LevelActions.Load(p, map, !Server.Config.AutoLoadMaps);
             if (LevelInfo.FindExact(map) != null)
                 PlayerActions.ChangeMap(p, map);
         }
-        
+
         static void HandleKick(Player p, string name, string ignored) {
             if (name.Length == 0) { p.Message("You must specify a player to kick."); return; }
             Player pl = PlayerInfo.FindMatches(p, name);
             if (pl == null) return;
-            
+
             if (pl.level == p.level) {
                 PlayerActions.ChangeMap(pl, Server.mainLevel);
             } else {
                 p.Message("Player is not on your level!");
             }
         }
-        
+
         static void HandleKickAll(Player p, string ignored1, string ignored2) {
             Player[] players = PlayerInfo.Online.Items;
             foreach (Player pl in players) {
@@ -72,20 +72,21 @@ namespace MCGalaxy.Commands.World {
                     PlayerActions.ChangeMap(pl, Server.mainLevel);
             }
         }
-        
+
         static void HandleLevelBlock(Player p, string arg1, string arg2) {
             string lbArgs = (arg1 + " " + arg2).Trim();
             CustomBlockCommand.Execute(p, lbArgs, p.DefaultCmdData, false, "/os lb");
         }
-        
-        
+
+
         static void HandleMap(Player p, string cmd, string value) {
             cmd = cmd.ToUpper();
             bool mapOnly = !(cmd.Length == 0 || IsCreateCommand(cmd));
             if (mapOnly && !LevelInfo.IsRealmOwner(p.name, p.level.name)) {
-                p.Message("You may only perform that action on your own map."); return;
+                p.Message("You may only perform that action on your own map.");
+                return;
             }
-            
+
             if (IsCreateCommand(cmd)) {
                 AddMap(p, value);
             } else if (cmd == "PHYSICS") {
@@ -107,10 +108,10 @@ namespace MCGalaxy.Commands.World {
 
                 bool needConfirm;
                 if (CmdResizeLvl.DoResize(p, args, p.DefaultCmdData, out needConfirm)) return;
-                
+
                 if (!needConfirm) return;
                 p.Message("Type %T/os map resize {0} {1} {2} confirm %Sif you're sure.",
-                          args[1], args[2], args[3]);
+                    args[1], args[2], args[3]);
             } else if (cmd == "PERVISIT") {
                 // Older realm maps didn't put you on visit whitelist, so make sure we put the owner here
                 AccessController access = p.level.VisitAccess;
@@ -128,40 +129,42 @@ namespace MCGalaxy.Commands.World {
                 if (opt == null) {
                     p.MessageLines(mapHelp);
                 } else if (DisallowedMapOption(opt.Name)) {
-                    p.Message("%WYou cannot change that map option via /os map."); return;
+                    p.Message("%WYou cannot change that map option via /os map.");
+                    return;
                 } else {
                     opt.SetFunc(p, p.level, value);
                     p.level.SaveSettings();
                 }
             }
         }
-        
+
         static bool DisallowedMapOption(string opt) {
             return opt == LevelOptions.Speed || opt == LevelOptions.Overload || opt == LevelOptions.RealmOwner;
         }
-        
+
         static void AddMap(Player p, string value) {
             if (p.group.OverseerMaps == 0) {
-                p.Message("Your rank is not allowed to create any /os maps."); return;
+                p.Message("Your rank is not allowed to create any /os maps.");
+                return;
             }
             string level = NextLevel(p);
             if (level == null) return;
 
             if (value.Length == 0) value = "128 128 128 flat";
             else if (value.IndexOf(' ') == -1) value = "128 128 128 " + value;
-            
+
             string[] args = value.TrimEnd().SplitSpaces();
             if (args.Length == 3) value += " flat";
 
-            CmdNewLvl newLvl = (CmdNewLvl)Command.Find("NewLvl"); // TODO: this is a nasty hack, find a better way
+            CmdNewLvl newLvl = (CmdNewLvl) Command.Find("NewLvl"); // TODO: this is a nasty hack, find a better way
             args = (level + " " + value).SplitSpaces();
-            
+
             Level lvl = newLvl.GenerateMap(p, args, p.DefaultCmdData);
             if (lvl == null) return;
-            
+
             SetPerms(p, lvl);
             p.Message("Use %T/os zone add [name] %Sto allow other players to build in the map.");
-            
+
             try {
                 lvl.Save(true);
             } finally {
@@ -169,7 +172,7 @@ namespace MCGalaxy.Commands.World {
                 Server.DoGC();
             }
         }
-        
+
         internal static void SetPerms(Player p, Level lvl) {
             lvl.Config.RealmOwner = p.name;
             const LevelPermission rank = LevelPermission.Nobody;
@@ -178,16 +181,16 @@ namespace MCGalaxy.Commands.World {
 
             Group grp = Group.Find(Server.Config.OSPerbuildDefault);
             if (grp == null) return;
-            
+
             lvl.BuildAccess.SetMin(Player.Console, rank, lvl, grp);
         }
-        
+
         static void DeleteMap(Player p, string value) {
             if (value.Length > 0) {
                 p.Message("To delete your current map, type %T/os map delete");
                 return;
             }
-            
+
             string map = p.level.name;
             p.Message("Created backup.");
             if (LevelActions.Delete(map)) {
@@ -205,8 +208,8 @@ namespace MCGalaxy.Commands.World {
         static void HandleSpawn(Player p, string ignored1, string ignored2) {
             UseCommand(p, "SetSpawn", "");
         }
-        
-        
+
+
         static void HandleZone(Player p, string cmd, string name) {
             cmd = cmd.ToUpper();
             if (cmd == "LIST") {
