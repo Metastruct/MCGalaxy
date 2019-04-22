@@ -173,7 +173,7 @@ namespace MCGalaxy.Commands.World {
             }
         }
 
-        internal static void SetPerms(Player p, Level lvl) {
+        public static void SetPerms(Player p, Level lvl) {
             lvl.Config.RealmOwner = p.name;
             const LevelPermission rank = LevelPermission.Nobody;
             lvl.BuildAccess.Whitelist(Player.Console, rank, lvl, p.name);
