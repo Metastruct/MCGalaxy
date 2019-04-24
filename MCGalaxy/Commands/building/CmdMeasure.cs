@@ -60,7 +60,7 @@ namespace MCGalaxy.Commands.Building {
             string title = "Block types: ";
             if (toCount == null) {
                 toCount = MostFrequentBlocks(counts);
-                title = "Top " + toCount.Length + " block types: ";
+                title = string.Format("{0} block types: ", toCount.Length);
             }
 
             string blocks = toCount.Join(bl => Block.GetName(p, bl) + FormatCount(counts[bl], volume));
@@ -80,7 +80,6 @@ namespace MCGalaxy.Commands.Building {
             }
             Array.Sort(counts, blocks);
 
-            if (total > 5) total = 5;
             BlockID[] mostFrequent = new BlockID[total];
             for (int i = 0; i < total; i++) {
                 mostFrequent[i] = blocks[blocks.Length - 1 - i];
