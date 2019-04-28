@@ -55,7 +55,22 @@ namespace MCGalaxy.Commands.CPE {
                     break;
                 case "delete":
                 case "remove":
-                    RemoveHandler(p, parts, global, cmd);
+                    if (parts[1] == "all") {
+                        string[] forEachParts = new string[] { parts[0], parts[1] };
+                        for (int i = 0; i < Block.MaxRaw; i++) {
+                            BlockID block = Block.FromRaw((BlockID) i);
+
+                            BlockDefinition[] defs = global ? BlockDefinition.GlobalDefs : p.level.CustomBlockDefs;
+                            BlockDefinition def = defs[block];
+                            if (ExistsInScope(def, block, global)) {
+                                forEachParts[1] = i.ToString();
+                                RemoveHandler(p, forEachParts, global, cmd);
+                            }
+
+                        }
+                    } else {
+                        RemoveHandler(p, parts, global, cmd);
+                    }
                     break;
                 case "info":
                 case "about":
