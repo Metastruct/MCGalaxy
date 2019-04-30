@@ -106,7 +106,7 @@ namespace MCGalaxy.Commands.World {
             Command.Find(cmd).Use(p, args, data);
         }
 
-        static string NextLevel(Player p) {
+        public static string NextLevel(Player p) {
             string level = p.name.ToLower();
             if (LevelInfo.MapExists(level) || LevelInfo.MapExists(level + "00")) {
                 // subtract 1, because we accounted for it in above if statement
