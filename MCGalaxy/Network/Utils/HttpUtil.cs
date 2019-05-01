@@ -14,6 +14,7 @@ permissions and limitations under the Licenses.
 */
 using System;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace MCGalaxy.Network {
     /// <summary> Static class for assisting with making web requests. </summary>
@@ -90,6 +91,15 @@ namespace MCGalaxy.Network {
             } else if (url.CaselessStarts("https://www.dropbox")) {
                 url = "https://dl.dropbox" + url.Substring("https://www.dropbox".Length);
                 url = url.Replace("?dl=0", "");
+            } else if (url.CaselessStarts("https://github.com/")) {
+                // after https://github.com/
+                string[] parts = url.Substring(19).Split('/');
+                // https://github.com/UnknownShadow200/MCGalaxy/blob/master/README.md
+                // UnknownShadow200 MCGalaxy blob master README.md
+                if (parts.Length >= 3 && parts[2] == "blob") {
+                    parts[2] = "raw"; // makes it a download link
+                    url = "https://github.com/" + parts.Join("/");
+                }
             }
             
             url = url.Replace("dl.dropboxusercontent.com", "dl.dropbox.com");
