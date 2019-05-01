@@ -20,9 +20,9 @@ namespace MCGalaxy.Network {
     public static class HttpUtil {
 
         public static WebClient CreateWebClient() { return new CustomWebClient(); }
-        
+
         public static HttpWebRequest CreateRequest(string uri) {
-            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(uri);
+            HttpWebRequest req = (HttpWebRequest) WebRequest.Create(uri);
             req.ServicePoint.BindIPEndPointDelegate = BindIPEndPointCallback;
             req.UserAgent = Server.SoftwareNameVersioned;
             return req;
@@ -31,13 +31,13 @@ namespace MCGalaxy.Network {
 
         class CustomWebClient : WebClient {
             protected override WebRequest GetWebRequest(Uri address) {
-                HttpWebRequest req = (HttpWebRequest)base.GetWebRequest(address);
+                HttpWebRequest req = (HttpWebRequest) base.GetWebRequest(address);
                 req.ServicePoint.BindIPEndPointDelegate = BindIPEndPointCallback;
                 req.UserAgent = Server.SoftwareNameVersioned;
-                return (WebRequest)req;
+                return (WebRequest) req;
             }
         }
-        
+
         static IPEndPoint BindIPEndPointCallback(ServicePoint servicePoint, IPEndPoint remoteEndPoint, int retryCount) {
             IPAddress localIP = null;
             if (Server.Listener != null) {
@@ -45,15 +45,15 @@ namespace MCGalaxy.Network {
             } else if (!IPAddress.TryParse(Server.Config.ListenIP, out localIP)) {
                 return null;
             }
-            
+
             // can only use same family for local bind IP
             if (remoteEndPoint.AddressFamily != localIP.AddressFamily) return null;
             return new IPEndPoint(localIP, 0);
         }
-        
+
         public static bool IsPrivateIP(string ip) {
             //range of 172.16.0.0 - 172.31.255.255
-            if (ip.StartsWith("172.") && (int.Parse(ip.Split('.')[1]) >= 16 && int.Parse(ip.Split('.')[1]) <= 31))
+            if (ip.StartsWith("172.") && (int.Parse(ip.Split('.') [1]) >= 16 && int.Parse(ip.Split('.') [1]) <= 31))
                 return true;
             return IPAddress.IsLoopback(IPAddress.Parse(ip)) || ip.StartsWith("192.168.") || ip.StartsWith("10.");
             //return IsLocalIpAddress(ip);
@@ -66,24 +66,23 @@ namespace MCGalaxy.Network {
                 IPAddress[] localIPs = Dns.GetHostAddresses(Dns.GetHostName());
 
                 // test if any host IP equals to any local IP or to localhost
-                foreach ( IPAddress hostIP in hostIPs ) {
+                foreach (IPAddress hostIP in hostIPs) {
                     // is localhost
-                    if ( IPAddress.IsLoopback(hostIP) ) return true;
+                    if (IPAddress.IsLoopback(hostIP)) return true;
                     // is local address
-                    foreach ( IPAddress localIP in localIPs ) {
-                        if ( hostIP.Equals(localIP) ) return true;
+                    foreach (IPAddress localIP in localIPs) {
+                        if (hostIP.Equals(localIP)) return true;
                     }
                 }
-            }
-            catch { }
+            } catch { }
             return false;
         }
-        
+
         /// <summary> Prefixes a URL by http:// if needed, and converts dropbox webpages to direct links. </summary>
         public static void FilterURL(ref string url) {
             if (!url.CaselessStarts("http://") && !url.CaselessStarts("https://"))
                 url = "http://" + url;
-            
+
             // a lot of people try linking to the dropbox page instead of directly to file, so auto correct
             if (url.CaselessStarts("http://www.dropbox")) {
                 url = "http://dl.dropbox" + url.Substring("http://www.dropbox".Length);
@@ -93,17 +92,18 @@ namespace MCGalaxy.Network {
                 url = url.Replace("?dl=0", "");
             }
         }
-        
+
         public static byte[] DownloadData(string url, Player p) {
             FilterURL(ref url);
             Uri uri;
             if (!Uri.TryCreate(url, UriKind.Absolute, out uri)) {
-                p.Message("%W{0} is not a valid URL.", url); return null;
+                p.Message("%W{0} is not a valid URL.", url);
+                return null;
             }
-            
+
             byte[] data = null;
             try {
-                using (WebClient client = CreateWebClient()) {
+                using(WebClient client = CreateWebClient()) {
                     p.Message("Downloading file from: &f" + url);
                     data = client.DownloadData(uri);
                 }
@@ -115,7 +115,7 @@ namespace MCGalaxy.Network {
             }
             return data;
         }
-        
+
         public static byte[] DownloadImage(string url, Player p) {
             byte[] data = DownloadData(url, p);
             if (data == null) p.Message("%WThe url may need to end with its extension (such as .jpg).");
