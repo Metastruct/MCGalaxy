@@ -56,7 +56,7 @@ namespace MCGalaxy {
 
         public bool CheckChatSpam() {
             Player.lastMSG = p.name;
-            if (!Server.Config.ChatSpamCheck || p.IsSuper) return false;
+            if (!Server.Config.ChatSpamCheck || p.IsSuper || p.Rank >= LevelPermission.Admin) return false;
 
             lock(chatLock) {
                 if (chatLog.AddSpamEntry(Server.Config.ChatSpamCount, Server.Config.ChatSpamInterval))
